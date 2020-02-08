@@ -1,49 +1,60 @@
 // SupportBot
-// Created by © 2020 Emerald Services
 // Command: Poll
 
 const Discord = require("discord.js");
-const bot = new Discord.Client();
+const bot = new Discord.Client()
 
-const fs = require("fs");
-const yaml = require('js-yaml');
-
-const supportbot = yaml.load(fs.readFileSync('./supportbot-config.yml', 'utf8'));
+bot.settings = require("../settings.json");
 
 exports.run = (bot, message, args) => {
+    message.delete();
 
-    console.log(`\u001b[33m`, `[${supportbot.Bot_Name}] > `, `\u001b[31;1m`, `${message.author.tag}`, `\u001b[32;1m`, `has executed`, `\u001b[31;1m`, `${supportbot.Prefix}${supportbot.Poll_Command}`);
-
-    let staffGroup = message.guild.roles.find(staffRole => staffRole.name === `${supportbot.StaffRole}`)
+    let staffGroup = message.guild.roles.find(staffRole => staffRole.name === `${bot.settings.staff}`)
 
     const rolemissing = new Discord.RichEmbed()
-        .setDescription(`:x: Looks like this server doesn't have the role **${supportbot.StaffRole}**`)
-        .setColor(supportbot.EmbedColour)
+        .setDescription(`:x: Looks like this server doesn't have the role **${bot.settings.staff}**`)
+        .setColor(bot.settings.colour)
     if (!staffGroup) return message.reply(rolemissing).catch(err=>{console.error(err)})
         
     const donothaverole = new Discord.RichEmbed()
-        .setDescription(`:x: Sorry! You cannot use this command with the role **${supportbot.StaffRole}**`)
-        .setColor(supportbot.EmbedColour)
+        .setDescription(`:x: Sorry! You cannot use this command with the role **${bot.settings.staff}**`)
+        .setColor(bot.settings.colour)
     if (!message.member.roles.has(staffGroup.id)) return message.reply(donothaverole)
     
     const embed = new Discord.RichEmbed()
-        .setTitle(`${supportbot.Poll_Title}`)
+        .setTitle(`${bot.settings.Poll_Title}`)
         .setDescription(args.join(" "))
         .setTimestamp()
-        .setColor(supportbot.EmbedColour)
-        .setFooter(supportbot.EmbedFooter, message.author.displayAvatarURL)
+        .setColor(bot.settings.colour)
+        .setFooter(bot.settings.footer, message.author.displayAvatarURL)
     
-    let ac = message.guild.channels.find(AnnounceChannel => AnnounceChannel.name === `${supportbot.Poll_Channel}`)
-    if(!ac) return message.channel.send(`:x: Error! Could not find the logs channel **${supportbot.Poll_Channel}**`)
+    let ac = message.guild.channels.find(AnnounceChannel => AnnounceChannel.name === `${bot.settings.Poll_Channel}`)
+    if(!ac) return message.channel.send(`:x: Error! Could not find the logs channel **${bot.settings.Poll_Channel}**`)
         
     ac.send(embed)
 
     .then(async function(msg) {
-        msg.react(supportbot.Reaction_Poll_1).then(() => msg.react(supportbot.Reaction_Poll_2));
+        msg.react(bot.settings.Reaction_Poll_1).then(() => msg.react(bot.settings.Reaction_Poll_2));
     });
 
-};
+    console.log(`\x1b[36m`, `${message.author} has executed ${bot.settings.prefix}${bot.settings.Poll_Command}`)
+
+    const CMDLog = new Discord.RichEmbed()
+        .setTitle(bot.settings.Commands_Log_Title)
+        .addField(`User`, `<@${message.author.id}>`)
+        .addField(`Command`, bot.settings.Close_Command, true)
+        .addField(`Channel`, message.channel, true)
+        .addField(`Executed At`, message.createdAt, true)
+        .setColor(bot.settings.colour)
+        .setFooter(bot.settings.footer)
+
+    let CommandLog = message.guild.channels.find(LogsChannel => LogsChannel.name === `${bot.settings.Command_Log_Channel}`);
+    if(!CommandLog) return message.channel.send(`:x: Error! Could not find the logs channel. **${bot.settings.Command_Log_Channel}**\nThis can be changed via ``settings.json```);
+    
+    CommandLog.send(CMDLog);
+
+}
 
 exports.help = {
-    name: supportbot.Poll_Command,
-};
+    name: bot.settings.Poll_Command,
+}

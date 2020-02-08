@@ -1,52 +1,63 @@
 // SupportBot
-// Created by © 2020 Emerald Services
-// Command: Rename
+// Command: Close Ticket
 
 const Discord = require("discord.js");
-const bot = new Discord.Client();
+const bot = new Discord.Client()
 
-const fs = require("fs");
-const yaml = require('js-yaml');
+bot.settings = require("../settings.json");
 
-const supportbot = yaml.load(fs.readFileSync('./supportbot-config.yml', 'utf8'));
+exports.run = (bot, message, args) => {
+    message.delete();
 
-exports.run = async (bot, message, args) => {
-
-    console.log(`\u001b[33m`, `[${supportbot.Bot_Name}] > `, `\u001b[31;1m`, `${message.author.tag}`, `\u001b[32;1m`, `has executed`, `\u001b[31;1m`, `${supportbot.Prefix}${supportbot.Rename_Command}`);
-
-	let staffGroup = message.guild.roles.find(staffRole => staffRole.name === supportbot.StaffRole)
+	let staffGroup = message.guild.roles.find(staffRole => staffRole.name === bot.settings.staff)
 
 	const rolemissing = new Discord.RichEmbed()
-		.setDescription(`:x: Looks like this server doesn't have the role **${supportbot.StaffRole}**`)
-		.setColor(supportbot.colour) 
+		.setDescription(`:x: Looks like this server doesn't have the role **${bot.settings.staff}**`)
+		.setColor(bot.settings.colour) 
 	if (!staffGroup) return message.reply({embed: rolemissing});
 
 	const donothaverole = new Discord.RichEmbed()
-		.setDescription(`:x: Sorry! You cannot use this command with the role **${supportbot.StaffRole}**`)
-		.setColor(supportbot.colour) 
+		.setDescription(`:x: Sorry! You cannot use this command with the role **${bot.settings.staff}**`)
+		.setColor(bot.settings.colour) 
 	if (!message.member.roles.has(staffGroup.id)) return message.reply({embed: donothaverole});
 	
     const outsideticket = new Discord.RichEmbed()
 		.setDescription(`:x: Cannot use this command becase you are outside a ticket channel.`)
-		.setColor(supportbot.colour) 
-	if (!message.channel.name.startsWith(`${supportbot.Ticket_Channel_Name}-`)) return message.channel.send({embed: outsideticket});
+		.setColor(bot.settings.colour) 
+	if (!message.channel.name.startsWith(`ticket-`)) return message.channel.send({embed: outsideticket});
 	const renameto = args.join(" ")
-	message.channel.setName(`${supportbot.Ticket_Channel_Name}-${renameto}`)
+	message.channel.setName(`ticket-${renameto}-${message.author.username}`)
 	
     // Renamed Ticket Logistic   
 	const logEmbed = new Discord.RichEmbed()
         .setTitle(":ticket: Ticket Renamed")
-		.setDescription(`<@${message.author.id}> has renamed a ticket to ${supportbot.Ticket_Channel_Name}-${renameto}`)
-        .setColor(supportbot.EmbedColour)
-        .setFooter(supportbot.EmbedFooter)
+		.setDescription(`<@${message.author.id}> has renamed a ticket to ${renameto}`)
+        .setColor(bot.settings.colour)
+        .setFooter(bot.settings.footer)
   
-    let logChannel = message.guild.channels.find(TicketChannel => TicketChannel.name === `${supportbot.Ticket_Logs}`);
-    if(!logChannel) return message.channel.send(`:x: Error! Could not find the logs channel **${supportbot.Ticket_Logs}**`);
+    let logChannel = message.guild.channels.find(TicketChannel => TicketChannel.name === `${bot.settings.Ticket_Logs}`);
+    if(!logChannel) return message.channel.send(`:x: Error! Could not find the logs channel **${bot.settings.Ticket_Logs}**`);
     
-    logChannel.send({embed: logEmbed});
+    logChannel.send({embed: logEmbed})
+	
+    console.log(`\x1b[36m`, `${message.author} has executed ${bot.settings.prefix}${bot.settings.Rename_Command}`)
 
-};
+    const CMDLog = new Discord.RichEmbed()
+        .setTitle(bot.settings.Commands_Log_Title)
+        .addField(`User`, `<@${message.author.id}>`)
+        .addField(`Command`, bot.settings.Rename_Command, true)
+        .addField(`Channel`, message.channel, true)
+        .addField(`Executed At`, message.createdAt, true)
+        .setColor(bot.settings.colour)
+        .setFooter(bot.settings.footer)
+
+    let CommandLog = message.guild.channels.find(LogsChannel => LogsChannel.name === `${bot.settings.Command_Log_Channel}`);
+    if(!CommandLog) return message.channel.send(`:x: Error! Could not find the logs channel. **${bot.settings.Command_Log_Channel}**\nThis can be changed via ``settings.json```);
+    
+    CommandLog.send(CMDLog);
+
+}
 
 exports.help = {
-    name: supportbot.Rename_Command,
+    name: bot.settings.Rename_Command,
 }
